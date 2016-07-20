@@ -1,4 +1,4 @@
-package com.zte.userinfo.core;
+package com.zte.userinfo.core.utils;
 
 import java.util.HashMap;
 import java.util.List;

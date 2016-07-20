@@ -1,4 +1,4 @@
-package com.zte.userinfo.core;
+package com.zte.userinfo.core.utils;
 
 public class StringUtils {
 

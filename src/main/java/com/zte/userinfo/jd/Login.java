@@ -10,8 +10,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import com.github.kevinsawicki.http.HttpRequest;
-import com.zte.userinfo.core.HtmlUtils;
-import com.zte.userinfo.core.StringUtils;
+import com.zte.userinfo.core.exceptions.LoginException;
+import com.zte.userinfo.core.utils.HtmlUtils;
+import com.zte.userinfo.core.utils.StringUtils;
 
 public class Login {
 	
@@ -21,8 +22,12 @@ public class Login {
 	
 	private static final String LoginUrl="https://passport.jd.com/uc/loginService";
 	
+	private static final String LoginSuccess="({\"success\":\"http://www.jd.com\"})";
 	
-	public void login(String loginname,String loginpwd){
+	/**
+	 * 登录账户和密码，返回登录成功后的cookie，如果登录失败则抛出登录异常
+	 */
+	public List<String> login(String loginname,String loginpwd){
 		HttpRequest getLoginPageReq=HttpRequest.get(LoginPage);//请求登录页面
 		if(test){
 			getLoginPageReq.useProxy("localhost", 8888).trustAllCerts().trustAllHosts();
@@ -53,16 +58,21 @@ public class Login {
 		String cookie=HtmlUtils.toCookieValue(cookies);
 		Map<String,String> headers=new HashMap<>();
 		headers.put("Cookie", cookie);
-		headers.put("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36");
-		headers.put("X-Requested-With", "XMLHttpRequest");
-		headers.put("Referer", LoginPage);
-		headers.put("Accept", "text/plain, */*; q=0.01");
-		headers.put("Accept-Encoding", "gzip, deflate");
-		headers.put("Accept-Language", "zh-CN,zh;q=0.8");
+		//headers.put("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36");
+		//headers.put("X-Requested-With", "XMLHttpRequest");
+		//headers.put("Referer", LoginPage);
+		//headers.put("Accept", "text/plain, */*; q=0.01");
+		//headers.put("Accept-Encoding", "gzip, deflate");
+		//headers.put("Accept-Language", "zh-CN,zh;q=0.8");
 		postLoginUrlReq.headers(headers).form(formData);
 		String body2=postLoginUrlReq.body();
 		System.out.println(StringUtils.decodeUnicode(body2));
-		
+		if(!LoginSuccess.equals(body2)){
+			throw new LoginException("登录失败，登录返回数据为："+body2);
+		}
+		Map<String, List<String>> responseHeaders2=postLoginUrlReq.headers();
+		List<String> cookies2=responseHeaders2.get("Set-Cookie");
+		return cookies2;
 	}
 	
 	
@@ -70,6 +80,9 @@ public class Login {
 	public static void main(String[] args) {
 		Login login=new Login();
 		//login.test=true;
-		login.login("这里输你的京东账号", "这里输密码");
+		List<String> cookies=login.login("这里输你的京东账号", "这里输密码");
+		Order order=new Order();
+		System.out.println(order.getUserOrder(HtmlUtils.toCookieValue(cookies)));
+		
 	}
 }
