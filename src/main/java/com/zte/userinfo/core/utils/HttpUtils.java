@@ -30,10 +30,10 @@ public class HttpUtils {
 	 */
 	public static HttpRequest request(String url,String method){
 		HttpRequest httpRequest=new HttpRequest(url,method);
+		proxy(httpRequest);
 		if(useDefaultUserAgent){
 			httpRequest.userAgent(DEFAULT_USER_AGENT);
 		}
-		proxy(httpRequest);
 		return httpRequest;
 	}
 }

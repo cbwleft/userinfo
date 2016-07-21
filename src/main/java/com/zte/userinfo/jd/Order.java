@@ -1,6 +1,8 @@
 package com.zte.userinfo.jd;
 
 import com.github.kevinsawicki.http.HttpRequest;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 import com.zte.userinfo.core.exceptions.LoginException;
 import com.zte.userinfo.core.utils.HttpUtils;
 
@@ -17,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.github.kevinsawicki.http.HttpRequest.METHOD_GET;
 import static com.github.kevinsawicki.http.HttpRequest.METHOD_POST;
-
+import static com.github.kevinsawicki.http.HttpRequest.CONTENT_TYPE_JSON;
 
 public class Order {
 
@@ -27,7 +29,7 @@ public class Order {
 	
 	private static Logger logger=LoggerFactory.getLogger(Order.class);
 	
-	public String getUserOrder(String cookie,int year){
+	public JsonArray getUserOrder(String cookie,int year){
 		String url=MessageFormat.format(OrderPage, year);
 		HttpRequest getOrderPageReq=HttpUtils.request(url, METHOD_GET);//请求订单页面
 		getOrderPageReq.header("Cookie", cookie);
@@ -38,11 +40,20 @@ public class Order {
 		logger.debug("请求订单页面{}的响应结果为{}",url,body);
 		Document doc=Jsoup.parse(body);
 		Map<String,String> data=getOrderParams(doc);
+		if(isEmpty(data)){
+			logger.info("订单查询参数为空，不请求订单详情数据");
+			return new JsonArray();
+		}
 		HttpRequest postOrderUrlReq=HttpUtils.request(OrderUrl, METHOD_POST);//懒加载订单详情
 		postOrderUrlReq.header("Cookie", cookie).form(data);
 		String body2=postOrderUrlReq.body();
 		logger.info("请求订单数据的结果为{}",body2);
-		return body2;
+		if(postOrderUrlReq.contentType().contains(CONTENT_TYPE_JSON)){
+			JsonArray jsonArray= new JsonParser().parse(body2).getAsJsonArray();
+			return jsonArray;
+		}else{
+			return new JsonArray();
+		}
 	}
 	
 	/**
@@ -77,6 +88,20 @@ public class Order {
 		}
 		logger.info("请求订单数据的请求参数为{}",data);
 		return data;
+	}
+	
+	/**
+	 * 判断订单参数是否为空
+	 * @param data
+	 * @return
+	 */
+	private boolean isEmpty(Map<String,String> data){
+		for(String value:data.values()){
+			if(value.length()>0){
+				return false;
+			}
+		}
+		return true;
 	}
 	
 }
